@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "proxy": {
+    "enabled": false,
+    "url": "",
+    "no_proxy": "localhost,127.0.0.1"
+  },
+  "artifact": {
+    "enabled": true,
+    "allow_public_pypi": true,
+    "ca_bundle": ""
+  },
+  "repositories": [
+    {
+      "name": "PyPI",
+      "type": "pypi",
+      "simple_url": "https://pypi.org/simple",
+      "browse_url": "",
+      "enabled": true,
+      "install_all": false,
+      "strict": true,
+      "priority": 1000
+    }
+  ],
+  "defaults": {
+    "python": "",
+    "robot": "",
+    "profile": "playwright",
+    "browser": "chromium",
+    "environment_type": "project"
+  },
+  "web": {
+    "host": "127.0.0.1",
+    "port": 8765,
+    "open_browser": true
+  },
+  "default_environment": "",
+  "package_sets": {
+    "RF Web - Playwright": [
+      "robotframework-browser",
+      "robotframework-browser-batteries"
+    ],
+    "RF Web - Selenium": [
+      "robotframework-seleniumlibrary",
+      "selenium"
+    ],
+    "RF API": [
+      "robotframework-requests"
+    ],
+    "RF Data": [
+      "robotframework-datadriver",
+      "robotframework-jsonlibrary",
+      "robotframework-faker"
+    ],
+    "RF Database": [
+      "robotframework-databaselibrary"
+    ],
+    "RF SSH": [
+      "robotframework-sshlibrary"
+    ],
+    "RF Quality / Parallel": [
+      "robotframework-pabot",
+      "robotframework-robocop"
+    ]
+  },
+  "ui": {
+    "language": "fr"
+  },
+  "version_filters": {
+    "python_recent_only": true,
+    "robot_recent_only": true,
+    "python_min": "3.10",
+    "robot_min": "6.0"
+  },
+  "installation_profiles": {
+    "Python - Utilitaires": [
+      "pyyaml",
+      "python-dotenv"
+    ],
+    "RF Web - Playwright": [
+      "robotframework-browser",
+      "robotframework-browser-batteries"
+    ],
+    "RF Web - Selenium": [
+      "robotframework-seleniumlibrary",
+      "selenium"
+    ],
+    "RF API": [
+      "robotframework-requests"
+    ],
+    "RF Data": [
+      "robotframework-datadriver",
+      "robotframework-jsonlibrary",
+      "robotframework-faker"
+    ],
+    "RF Database": [
+      "robotframework-databaselibrary"
+    ],
+    "RF SSH": [
+      "robotframework-sshlibrary"
+    ],
+    "RF Quality / Parallel": [
+      "robotframework-pabot",
+      "robotframework-robocop"
+    ],
+    "IA / LLM": [
+      "rf-mcp",
+      "pyyaml",
+      "python-dotenv"
+    ],
+    "IA / LLM + Ollama": [
+      "rf-mcp",
+      "pyyaml",
+      "python-dotenv",
+      "ollama"
+    ]
+  },
+  "profile_actions": {
+    "IA / LLM + Ollama": [
+      "ollama-runtime"
+    ]
+  },
+  "project": {
+    "name": "RFPY",
+    "author": "Olivier RENAULT",
+    "license": "Apache-2.0"
+  },
+  "package_install": {
+    "binary_fallback_on_msvc_error": true
+  },
+  "cancellation": {
+    "cleanup_new_environment": true
+  }
+}

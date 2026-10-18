@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+.vscode/
+.idea/
+dist/
+build/
+*.log
+*.tmp
+.DS_Store
+# Build / release artifacts
+*.exe
+*.exe.sha256
