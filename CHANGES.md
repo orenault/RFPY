@@ -21,6 +21,7 @@ Highlights:
 - GitHub Actions validation and GitHub Release build pipeline.
 - Cleaner public repository layout with runtime sources under `src/`, installer source under `installer/` and visual assets under `assets/`; installed RFPY layout is unchanged.
 - Deterministic installer payload embedding across LF/CRLF checkouts and GitHub Actions updated to Node.js 24-compatible action versions.
+- Windows PowerShell 5.1 source parsing hardened by storing PowerShell sources as UTF-8 with BOM when they contain non-ASCII text.
 - Profiles installation now remains in the **Profiles & libraries** tab with a collapsible execution log.
 - Import `requirements.txt` or `pyproject.toml` into a reusable RFPY installation profile.
 - Optional targeted binary-wheel fallback after explicit Windows MSVC / Visual C++ build failures.

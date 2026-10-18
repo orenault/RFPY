@@ -242,6 +242,19 @@ class RfpyTests(unittest.TestCase):
         self.assertIn('[str(rfbrowser),"install","chromium"]', app.replace(' ',''))
 
 
+    def test_powershell_sources_have_utf8_bom_for_windows_powershell_51(self):
+        # Windows PowerShell 5.1 does not reliably treat UTF-8 without BOM as UTF-8.
+        # These files contain non-ASCII text and are parsed/executed on Windows.
+        for path in (
+            WRAPPERS_DIR / "rfpy.ps1",
+            WRAPPERS_DIR / "uv.ps1",
+            INSTALLER_FILE,
+        ):
+            self.assertTrue(
+                path.read_bytes().startswith(b"\xef\xbb\xbf"),
+                f"{path} must be UTF-8 with BOM for Windows PowerShell 5.1",
+            )
+
     def test_installer_preserves_multilingual_powershell_utf8(self):
         root = Path(__file__).resolve().parents[1]
         installer = INSTALLER_FILE.read_text(encoding="utf-8")

@@ -1,4 +1,4 @@
-# RFPY — Copyright © 2026 Olivier RENAULT — Apache-2.0
+﻿# RFPY — Copyright © 2026 Olivier RENAULT — Apache-2.0
 # RFPY shell bridge. Keeps activation in the current PowerShell process.
 param(
     [Parameter(Position=0)][string]$Action = 'on',

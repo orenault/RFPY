@@ -1,4 +1,4 @@
-# RFPY — Copyright © 2026 Olivier RENAULT — Apache-2.0
+﻿# RFPY — Copyright © 2026 Olivier RENAULT — Apache-2.0
 param([Parameter(ValueFromRemainingArguments=$true)][string[]]$ArgsRest)
 $Root=Split-Path -Parent $PSScriptRoot
 $RealUv=Join-Path $Root 'tools\uv\uv.exe'
