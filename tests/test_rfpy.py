@@ -12,12 +12,18 @@ import unittest
 from pathlib import Path
 
 
+ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT / "src"
+WRAPPERS_DIR = SRC_DIR / "wrappers"
+INSTALLER_FILE = ROOT / "installer" / "rfpy-installer.ps1"
+
+
 class RfpyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         os.environ['RFPY_HOME'] = cls.tmp.name
-        src = Path(__file__).resolve().parents[1] / 'rfpy.py'
+        src = SRC_DIR / 'rfpy.py'
         spec = importlib.util.spec_from_file_location('rfpy_test_module', src)
         cls.rfpy = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
@@ -144,13 +150,13 @@ class RfpyTests(unittest.TestCase):
 
     def test_backend_empty_install_opens_web_failsafe(self):
         root = Path(__file__).resolve().parents[1]
-        app = (root / "rfpy.py").read_text(encoding="utf-8")
+        app = (SRC_DIR / "rfpy.py").read_text(encoding="utf-8")
         self.assertIn("Aucun environnement n existe encore. Ouverture de la console Web", app)
         self.assertIn("serve_web()", app)
 
     def test_shell_defaults_to_on_and_scans_stacks_directly(self):
         root = Path(__file__).resolve().parents[1]
-        ps = (root / 'rfpy.ps1').read_text(encoding='utf-8')
+        ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8')
         self.assertIn("[Parameter(Position=0)][string]$Action = 'on'", ps)
         self.assertIn('function Find-ManagedEnvironments', ps)
         self.assertIn('Get-ChildItem -LiteralPath $RfpyStacks', ps)
@@ -159,14 +165,14 @@ class RfpyTests(unittest.TestCase):
 
     def test_installer_returns_to_path_only_model(self):
         root = Path(__file__).resolve().parents[1]
-        installer = (root / 'rfpy-installer.ps1').read_text(encoding='utf-8')
+        installer = INSTALLER_FILE.read_text(encoding='utf-8')
         self.assertIn('Remove-RfpyOldProfileShims', installer)
         self.assertIn('Ensure-UserPath $BinDir', installer)
 
 
     def test_shell_manifest_access_is_tolerant(self):
         root = Path(__file__).resolve().parents[1]
-        ps = (root / "rfpy.ps1").read_text(encoding="utf-8")
+        ps = (WRAPPERS_DIR / "rfpy.ps1").read_text(encoding="utf-8")
         self.assertIn("function Read-ManifestField", ps)
         self.assertIn("'robot_resolved','robot_requested','robot_version','robot'", ps)
         self.assertIn("'python_resolved','python_requested','python_version','python'", ps)
@@ -204,7 +210,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_shell_menu_uses_keyboard_actions_and_language_config(self):
         root = Path(__file__).resolve().parents[1]
-        ps = (root / 'rfpy.ps1').read_text(encoding='utf-8')
+        ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8')
         self.assertIn('function Pick-FromList', ps)
         self.assertIn("$language = 'fr'", ps)
         self.assertIn("$rawCfg.ui.PSObject.Properties['language']", ps)
@@ -214,7 +220,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_project_without_folder_is_project_pending(self):
         root = Path(__file__).resolve().parents[1]
-        app = (root / 'rfpy.py').read_text(encoding='utf-8')
+        app = (SRC_DIR / 'rfpy.py').read_text(encoding='utf-8')
         self.assertIn('("project" if project else "project-pending") if env_type == "project" else "active-venv"', app)
 
     def test_web_branding_profiles_and_graphical_controls(self):
@@ -231,15 +237,15 @@ class RfpyTests(unittest.TestCase):
 
     def test_profile_install_runs_browser_runtime_when_needed(self):
         root = Path(__file__).resolve().parents[1]
-        app = (root / 'rfpy.py').read_text(encoding='utf-8')
+        app = (SRC_DIR / 'rfpy.py').read_text(encoding='utf-8')
         self.assertIn('def post_install_package_runtime', app)
         self.assertIn('[str(rfbrowser),"install","chromium"]', app.replace(' ',''))
 
 
     def test_installer_preserves_multilingual_powershell_utf8(self):
         root = Path(__file__).resolve().parents[1]
-        installer = (root / "rfpy-installer.ps1").read_text(encoding="utf-8")
-        shell = (root / "rfpy.ps1").read_text(encoding="utf-8")
+        installer = INSTALLER_FILE.read_text(encoding="utf-8")
+        shell = (WRAPPERS_DIR / "rfpy.ps1").read_text(encoding="utf-8")
         self.assertIn("[IO.File]::ReadAllText($rfpyPsPath, $utf8NoBom)", installer)
         self.assertIn("[Text.UTF8Encoding]::new($true)", installer)
         self.assertIn("UTF-8 BOM valide", installer)
@@ -295,7 +301,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_web_removes_backend_native_pickers(self):
         root = Path(__file__).resolve().parents[1]
-        app = (root / "rfpy.py").read_text(encoding="utf-8")
+        app = (SRC_DIR / "rfpy.py").read_text(encoding="utf-8")
         self.assertNotIn("FolderBrowserDialog", app)
         self.assertNotIn("OpenFileDialog", app)
         self.assertNotIn("SetForegroundWindow", app)
@@ -304,7 +310,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_web_has_filesystem_browser(self):
         html = self.rfpy.WEB_HTML
-        app = (Path(__file__).resolve().parents[1] / "rfpy.py").read_text(encoding="utf-8")
+        app = (SRC_DIR / "rfpy.py").read_text(encoding="utf-8")
         self.assertIn("/api/fs/roots", app)
         self.assertIn("/api/fs/list", app)
         self.assertIn("/api/fs/mkdir", app)
@@ -314,7 +320,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_ca_uses_browser_file_input(self):
         html = self.rfpy.WEB_HTML
-        app = (Path(__file__).resolve().parents[1] / "rfpy.py").read_text(encoding="utf-8")
+        app = (SRC_DIR / "rfpy.py").read_text(encoding="utf-8")
         self.assertIn('type="file"', html)
         self.assertIn('accept=".pem,.crt,.cer"', html)
         self.assertIn("/api/upload-ca", app)
@@ -335,7 +341,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_ollama_runtime_install_does_not_pull_a_model(self):
         root = Path(__file__).resolve().parents[1]
-        app = (root / 'rfpy.py').read_text(encoding='utf-8')
+        app = (SRC_DIR / 'rfpy.py').read_text(encoding='utf-8')
         block = app[app.index('def ensure_ollama_runtime'):app.index('def run_profile_actions')]
         self.assertIn('OllamaSetup.exe', block)
         self.assertNotIn('ollama pull', block.lower())
@@ -343,7 +349,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_cli_doctor_output_is_not_discarded_by_powershell_bridge(self):
         root = Path(__file__).resolve().parents[1]
-        ps = (root / 'rfpy.ps1').read_text(encoding='utf-8')
+        ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8')
         default = ps[ps.index('default {'):ps.index('    }\n} catch', ps.index('default {'))]
         self.assertIn('Call-RfpyCore $forward', default)
         self.assertNotIn('Out-Null', default)
@@ -351,7 +357,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_installer_has_native_root_dialog_and_parameter_bypass(self):
         root = Path(__file__).resolve().parents[1]
-        installer = (root / 'rfpy-installer.ps1').read_text(encoding='utf-8')
+        installer = INSTALLER_FILE.read_text(encoding='utf-8')
         self.assertIn('Select-RfpyInstallDirectory', installer)
         self.assertIn('FolderBrowserDialog', installer)
         self.assertIn("$form.TopMost = $true", installer)
@@ -360,9 +366,9 @@ class RfpyTests(unittest.TestCase):
 
     def test_custom_install_root_is_forwarded_to_backend(self):
         root = Path(__file__).resolve().parents[1]
-        ps = (root / 'rfpy.ps1').read_text(encoding='utf-8')
-        cmd = (root / 'rfpy.cmd').read_text(encoding='utf-8')
-        installer = (root / 'rfpy-installer.ps1').read_text(encoding='utf-8')
+        ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8')
+        cmd = (WRAPPERS_DIR / 'rfpy.cmd').read_text(encoding='utf-8')
+        installer = INSTALLER_FILE.read_text(encoding='utf-8')
         self.assertIn('$env:RFPY_HOME = $RfpyRoot', ps)
         self.assertIn('set "RFPY_HOME=%RFPY_ROOT%"', cmd)
         self.assertIn('$env:RFPY_HOME = $InstallDir', installer)
@@ -370,7 +376,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_profile_actions_apply_when_completing_an_existing_environment(self):
         root = Path(__file__).resolve().parents[1]
-        app = (root / 'rfpy.py').read_text(encoding='utf-8')
+        app = (SRC_DIR / 'rfpy.py').read_text(encoding='utf-8')
         block = app[app.index('def install_selected_packages'):app.index('def run_smoke_test')]
         self.assertIn('run_profile_actions(selected_profile,cfg,log)', block)
         self.assertIn("profile:$('installationProfile').value", self.rfpy.WEB_HTML)
@@ -403,7 +409,7 @@ class RfpyTests(unittest.TestCase):
         cfg = self.rfpy.load_config()
         self.assertTrue(cfg['package_install']['binary_fallback_on_msvc_error'])
         root = Path(__file__).resolve().parents[1]
-        app = (root / 'rfpy.py').read_text(encoding='utf-8')
+        app = (SRC_DIR / 'rfpy.py').read_text(encoding='utf-8')
         self.assertIn('MSVC_BUILD_ERROR_RE', app)
         self.assertIn('"--only-binary", failed_name, failed_req', app)
         self.assertNotIn('"--only-binary", ":all:"', app)
@@ -452,7 +458,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_open_file_uses_detached_helper(self):
         root = Path(__file__).resolve().parents[1]
-        app = (root / 'rfpy.py').read_text(encoding='utf-8')
+        app = (SRC_DIR / 'rfpy.py').read_text(encoding='utf-8')
         block = app[app.index('def open_local_path'):app.index('def probe_project')]
         self.assertIn('DETACHED_PROCESS', block)
         self.assertIn('subprocess.DEVNULL', block)
@@ -485,7 +491,7 @@ class RfpyTests(unittest.TestCase):
 
     def test_installer_embeds_notice_license_and_authors(self):
         root = Path(__file__).resolve().parents[1]
-        installer = (root / 'rfpy-installer.ps1').read_text(encoding='utf-8')
+        installer = INSTALLER_FILE.read_text(encoding='utf-8')
         for token in ('$NoticeBase64', '$LicenseBase64', '$AuthorsBase64'):
             self.assertIn(token, installer)
         self.assertIn("Join-Path $InstallDir 'NOTICE'", installer)

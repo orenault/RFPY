@@ -8,6 +8,5 @@ build/
 *.log
 *.tmp
 .DS_Store
-# Build / release artifacts
-*.exe
-*.exe.sha256
+RFPY-Setup.exe
+RFPY-Setup.exe.sha256

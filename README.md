@@ -2,7 +2,7 @@
 **Copyright © 2026 Olivier RENAULT — Apache-2.0**
 
 <p align="center">
-  <img src="rfpy-logo-header.webp" alt="RFPY" width="360">
+  <img src="assets/rfpy-logo-header.webp" alt="RFPY" width="360">
 </p>
 
 # RFPY
@@ -87,7 +87,7 @@ For unattended or scripted installation, pass the directory explicitly:
 The PowerShell source installer can also be run directly:
 
 ```powershell
-.\rfpy-installer.ps1 -InstallDir "D:\Tools\RFPY"
+.\installer\rfpy-installer.ps1 -InstallDir "D:\Tools\RFPY"
 ```
 
 The directory selector is shown **only when the installation directory is not supplied**.
@@ -389,6 +389,32 @@ C:\RFPY\
 
 The global uv engine is installed once under RFPY. It is not duplicated into every environment.
 
+## Repository layout
+
+The repository root intentionally keeps project metadata and documentation separate from implementation files:
+
+```text
+RFPY/
+├── .github/              # GitHub Actions
+├── assets/               # icon and README branding
+├── installer/            # standalone PowerShell installer source
+├── src/                  # RFPY runtime sources
+│   ├── rfpy.py
+│   ├── default-config.json
+│   ├── web/              # split Web UI sources
+│   └── wrappers/         # rfpy / uv shell bridges
+├── tests/                # unit and regression tests
+├── tools/                # repository maintenance helpers
+├── README.md
+├── CHANGES.md
+├── TODO.md
+├── LICENSE
+├── NOTICE
+└── AUTHORS
+```
+
+The installed RFPY layout under `C:\RFPY` is unchanged by this source-tree organization.
+
 ## Building from source
 
 Requirements for development:
@@ -417,13 +443,13 @@ Build the executable manually:
 Install-Module ps2exe -Scope CurrentUser -Force
 
 Invoke-ps2exe `
-    .\rfpy-installer.ps1 `
+    .\installer\rfpy-installer.ps1 `
     .\RFPY-Setup.exe `
     -x64 `
     -title "RFPY Installer" `
     -product "RFPY" `
     -version "1.0.0.0" `
-    -iconFile .\rfpy.ico
+    -iconFile .\assets\rfpy.ico
 ```
 
 ## GitHub Releases
