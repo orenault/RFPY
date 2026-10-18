@@ -66,14 +66,14 @@ When no installation directory is passed, the installer displays a native Window
 C:\RFPY
 ```
 
-as the default path. The directory can be changed with the **Browse** button.
+as the default path. The directory can be changed with the **Browse** button. The dialog uses the RFPY application icon, displays the RFPY copyright/version, and offers the same five UI languages as the Web console: French, English, German, Spanish and Chinese. The selected installer language is persisted as the initial language for both the RFPY CLI and Web console. The same dialog also lets you keep the default **automatic Web port** policy (first free port starting at 8765) or select a fixed port when required.
 
 ```mermaid
 flowchart TD
     A[Run RFPY-Setup.exe] --> B{InstallDir supplied?}
     B -->|No| C[Native Windows dialog]
-    C --> D[Choose installation directory]
-    B -->|Yes| E[Use supplied directory]
+    C --> D[Choose directory, language and Web port policy]
+    B -->|Yes| E[Use supplied directory/options]
     D --> F[Install RFPY]
     E --> F
 ```
@@ -82,6 +82,9 @@ For unattended or scripted installation, pass the directory explicitly:
 
 ```powershell
 .\RFPY-Setup.exe -InstallDir "D:\Tools\RFPY"
+
+# Optional fixed Web port; 0 keeps automatic allocation
+.\RFPY-Setup.exe -InstallDir "D:\Tools\RFPY" -WebPort 8877
 ```
 
 The PowerShell source installer can also be run directly:
@@ -111,6 +114,9 @@ rfpy list                # static environment list
 rfpy status              # current environment
 rfpy doctor              # diagnostics in the terminal
 rfpy web                 # open the local Web console
+rfpyw                    # direct shortcut to the local Web console
+rfpy language            # interactively select CLI/Web language
+rfpy language en         # set CLI/Web language directly
 rfpy off                 # deactivate the current RFPY environment
 ```
 
@@ -131,6 +137,12 @@ Activate a known environment directly:
 ```powershell
 rfpy activate MY-ENV
 ```
+
+The detailed help is shared by `cmd.exe` and PowerShell and follows the configured language. Root and command-specific forms are supported, for example `rfpy -h`, `rfpy --help`, `rfpy install -h`, `rfpy project add -h` and `rfpy help install`. Pressing **Esc** in the quick selector now simply returns to the prompt; the Web console is opened automatically only when no RFPY environment exists.
+
+PowerShell and `cmd.exe` use the same keyboard-oriented selection behavior. In `cmd.exe`, environment activation metadata is exchanged through a dedicated internal command rather than inline `python -c` quoting, so activation persists in the current CMD session without the former quoting failure.
+
+Language is a **global RFPY setting**, not an environment property. In the quick selector and management selector, press **F2** to open the same arrow-key language selector; the current language is shown in green. The active environment is also shown in green. `rfpyw` is provided as a short direct alias for `rfpy web` and its startup/stop messages follow the configured language.
 
 ## Project vs Shared
 
@@ -181,11 +193,7 @@ Run:
 rfpy web
 ```
 
-The Web console is local-only by default:
-
-```text
-http://127.0.0.1:8765
-```
+The Web console is local-only. By default the configured port is **automatic**: RFPY tries 8765 first, then the following ports until it finds a free one. The actual URL is printed when `rfpy web` / `rfpyw` starts. A fixed port can be selected in **Settings** or during installation; if that fixed port is busy, RFPY reports the conflict instead of silently opening another application.
 
 It contains five main areas:
 
@@ -320,6 +328,12 @@ RFPY can work with:
 - Nexus repositories;
 - Artifactory repositories;
 - generic PEP 503 compatible indexes.
+
+Private/enterprise repositories are **disabled by default**. Settings and repository configuration are presented in one vertical page: public PyPI first, then private Nexus / Artifactory / Generic indexes, followed by proxy, CA, Web port, install safety, version filters and defaults. The **Save** action is at the top because it applies to the whole Settings page.
+
+Add one or more private repositories and provide a **Simple / PEP 503 URL** (the URL used by uv/pip). Several private indexes may be enabled at the same time; their numeric priority controls the order passed to uv. A private row starts disabled, and RFPY refuses to save any enabled repository without a valid `http://` or `https://` Simple URL. An optional Browse/API URL can be supplied for package discovery. Public PyPI remains independently configurable.
+
+The Web console also tracks unsaved Settings changes: the page marks the configuration as modified and warns before **Quit** (and before browser unload) when changes have not been saved. Existing configurations created with the old default are still treated as private-repository disabled when they contain only public PyPI and no private URL.
 
 Proxy and custom CA settings are centralized in RFPY and propagated to the relevant subprocesses.
 

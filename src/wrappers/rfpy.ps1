@@ -19,33 +19,37 @@ $RfpyApp = Join-Path $RfpyRoot 'app\rfpy.py'
 $RfpyConfig = Join-Path $RfpyRoot 'config\rfpy.json'
 $env:RFPY_HOME = $RfpyRoot
 
-if ($Help) { $Action = 'help' }
+$ActionWasExplicit = $PSBoundParameters.ContainsKey('Action')
+$HelpRequested = [bool]$Help -or ($Action -in @('--help','-h','-help','/?','?','help'))
 if ($Menu) { $Action = 'menu' }
-if ($Action -in @('--help','-h','/?')) { $Action = 'help' }
 if ($Action -ieq 'activate') { $Action = 'on' }
 if ($Action -ieq 'deactivate') { $Action = 'off' }
 
-$language = 'fr'
-try {
-    if (Test-Path -LiteralPath $RfpyConfig) {
-        $rawCfg = Get-Content -LiteralPath $RfpyConfig -Raw | ConvertFrom-Json
-        $uiProp = $rawCfg.PSObject.Properties['ui']
-        if ($null -ne $uiProp -and $null -ne $rawCfg.ui) {
-            $langProp = $rawCfg.ui.PSObject.Properties['language']
-            if ($null -ne $langProp -and [string]$langProp.Value -in @('fr','en','de','es','zh')) {
-                $language = [string]$langProp.Value
+function Get-RfpyLanguage {
+    $lang = 'fr'
+    try {
+        if (Test-Path -LiteralPath $RfpyConfig) {
+            $rawCfg = Get-Content -LiteralPath $RfpyConfig -Raw | ConvertFrom-Json
+            $uiProp = $rawCfg.PSObject.Properties['ui']
+            if ($null -ne $uiProp -and $null -ne $rawCfg.ui) {
+                $langProp = $rawCfg.ui.PSObject.Properties['language']
+                if ($null -ne $langProp -and [string]$langProp.Value -in @('fr','en','de','es','zh')) {
+                    $lang = [string]$langProp.Value
+                }
             }
         }
-    }
-} catch { }
-$env:RFPY_LANG = $language
+    } catch { }
+    return $lang
+}
+$script:language = Get-RfpyLanguage
+$env:RFPY_LANG = $script:language
 
 $words = @{
-    fr=@{ title='RFPY - Sélection / activation'; keys='↑/↓ : sélectionner | Entrée : valider | Échap : quitter'; none='Aucun environnement RFPY installé.'; first='Ouverture de la console Web pour créer le premier environnement...'; project='Projet'; shared='Partagé'; active='actif'; menu='RFPY - Gestion'; activate='Activer'; rename='Renommer'; delete='Supprimer'; back='Retour'; newname='Nouveau nom'; deactivateFirst='Désactivez d abord avec rfpy off.'; confirm='Supprimer'; yes='o/N'; inactive='RFPY inactif.'; deactivated='Environnement désactivé.'; unknown='Environnement RFPY inconnu'; help='Commandes RFPY'; current='RFPY actif'; venv='Environnement virtuel' }
-    en=@{ title='RFPY - Select / activate'; keys='Up/Down: select | Enter: validate | Esc: quit'; none='No RFPY environment installed.'; first='Opening the Web console to create the first environment...'; project='Project'; shared='Shared'; active='active'; menu='RFPY - Management'; activate='Activate'; rename='Rename'; delete='Delete'; back='Back'; newname='New name'; deactivateFirst='Deactivate first with rfpy off.'; confirm='Delete'; yes='y/N'; inactive='RFPY inactive.'; deactivated='Environment deactivated.'; unknown='Unknown RFPY environment'; help='RFPY commands'; current='RFPY active'; venv='Virtual environment' }
-    de=@{ title='RFPY - Auswahl / Aktivierung'; keys='Hoch/Runter: auswählen | Enter: bestätigen | Esc: beenden'; none='Keine RFPY-Umgebung installiert.'; first='Web-Konsole wird geöffnet...'; project='Projekt'; shared='Geteilt'; active='aktiv'; menu='RFPY - Verwaltung'; activate='Aktivieren'; rename='Umbenennen'; delete='Löschen'; back='Zurück'; newname='Neuer Name'; deactivateFirst='Zuerst mit rfpy off deaktivieren.'; confirm='Löschen'; yes='j/N'; inactive='RFPY inaktiv.'; deactivated='Umgebung deaktiviert.'; unknown='Unbekannte RFPY-Umgebung'; help='RFPY-Befehle'; current='RFPY aktiv'; venv='Virtuelle Umgebung' }
-    es=@{ title='RFPY - Selección / activación'; keys='Arriba/Abajo: seleccionar | Enter: validar | Esc: salir'; none='No hay entornos RFPY instalados.'; first='Abriendo la consola Web...'; project='Proyecto'; shared='Compartido'; active='activo'; menu='RFPY - Gestión'; activate='Activar'; rename='Renombrar'; delete='Eliminar'; back='Volver'; newname='Nuevo nombre'; deactivateFirst='Desactive primero con rfpy off.'; confirm='Eliminar'; yes='s/N'; inactive='RFPY inactivo.'; deactivated='Entorno desactivado.'; unknown='Entorno RFPY desconocido'; help='Comandos RFPY'; current='RFPY activo'; venv='Entorno virtual' }
-    zh=@{ title='RFPY - 选择 / 激活'; keys='上下键：选择 | Enter：确认 | Esc：退出'; none='尚未安装 RFPY 环境。'; first='正在打开 Web 控制台…'; project='项目'; shared='共享'; active='活动'; menu='RFPY - 管理'; activate='激活'; rename='重命名'; delete='删除'; back='返回'; newname='新名称'; deactivateFirst='请先使用 rfpy off 停用。'; confirm='删除'; yes='是/N'; inactive='RFPY 未激活。'; deactivated='环境已停用。'; unknown='未知 RFPY 环境'; help='RFPY 命令'; current='RFPY 已激活'; venv='虚拟环境' }
+    fr=@{ title='RFPY - Sélection / activation'; keys='↑/↓ : sélectionner | Entrée : valider | Échap : quitter'; none='Aucun environnement RFPY installé.'; first='Ouverture de la console Web pour créer le premier environnement...'; project='Projet'; shared='Partagé'; active='actif'; menu='RFPY - Gestion'; activate='Activer'; rename='Renommer'; delete='Supprimer'; settings='Paramétrage'; language='Langue'; back='Retour'; newname='Nouveau nom'; deactivateFirst='Désactivez d abord avec rfpy off.'; confirm='Supprimer'; yes='o/N'; inactive='RFPY inactif.'; deactivated='Environnement désactivé.'; unknown='Environnement RFPY inconnu'; help='Commandes RFPY'; current='RFPY actif'; venv='Environnement virtuel'; f2='F2 : langue'; f3='F3 : Web'; languageTitle='Langue RFPY'; activated='Environnement activé'; runtimeMissing='Runtime RFPY introuvable'; appMissing='Application RFPY introuvable'; invalidVenv='Venv invalide'; errorPrefix='ERREUR'; unexpected='Erreur RFPY inattendue.' }
+    en=@{ title='RFPY - Select / activate'; keys='Up/Down: select | Enter: validate | Esc: quit'; none='No RFPY environment installed.'; first='Opening the Web console to create the first environment...'; project='Project'; shared='Shared'; active='active'; menu='RFPY - Management'; activate='Activate'; rename='Rename'; delete='Delete'; settings='Settings'; language='Language'; back='Back'; newname='New name'; deactivateFirst='Deactivate first with rfpy off.'; confirm='Delete'; yes='y/N'; inactive='RFPY inactive.'; deactivated='Environment deactivated.'; unknown='Unknown RFPY environment'; help='RFPY commands'; current='RFPY active'; venv='Virtual environment'; f2='F2: language'; f3='F3: Web'; languageTitle='RFPY language'; activated='Environment activated'; runtimeMissing='RFPY runtime not found'; appMissing='RFPY application not found'; invalidVenv='Invalid venv'; errorPrefix='ERROR'; unexpected='Unexpected RFPY error.' }
+    de=@{ title='RFPY - Auswahl / Aktivierung'; keys='Hoch/Runter: auswählen | Enter: bestätigen | Esc: beenden'; none='Keine RFPY-Umgebung installiert.'; first='Web-Konsole wird geöffnet...'; project='Projekt'; shared='Geteilt'; active='aktiv'; menu='RFPY - Verwaltung'; activate='Aktivieren'; rename='Umbenennen'; delete='Löschen'; settings='Einstellungen'; language='Sprache'; back='Zurück'; newname='Neuer Name'; deactivateFirst='Zuerst mit rfpy off deaktivieren.'; confirm='Löschen'; yes='j/N'; inactive='RFPY inaktiv.'; deactivated='Umgebung deaktiviert.'; unknown='Unbekannte RFPY-Umgebung'; help='RFPY-Befehle'; current='RFPY aktiv'; venv='Virtuelle Umgebung'; f2='F2: Sprache'; f3='F3: Web'; languageTitle='RFPY-Sprache'; activated='Umgebung aktiviert'; runtimeMissing='RFPY-Laufzeit nicht gefunden'; appMissing='RFPY-Anwendung nicht gefunden'; invalidVenv='Ungültiges venv'; errorPrefix='FEHLER'; unexpected='Unerwarteter RFPY-Fehler.' }
+    es=@{ title='RFPY - Selección / activación'; keys='Arriba/Abajo: seleccionar | Enter: validar | Esc: salir'; none='No hay entornos RFPY instalados.'; first='Abriendo la consola Web...'; project='Proyecto'; shared='Compartido'; active='activo'; menu='RFPY - Gestión'; activate='Activar'; rename='Renombrar'; delete='Eliminar'; settings='Configuración'; language='Idioma'; back='Volver'; newname='Nuevo nombre'; deactivateFirst='Desactive primero con rfpy off.'; confirm='Eliminar'; yes='s/N'; inactive='RFPY inactivo.'; deactivated='Entorno desactivado.'; unknown='Entorno RFPY desconocido'; help='Comandos RFPY'; current='RFPY activo'; venv='Entorno virtual'; f2='F2: idioma'; f3='F3: Web'; languageTitle='Idioma RFPY'; activated='Entorno activado'; runtimeMissing='Runtime RFPY no encontrado'; appMissing='Aplicación RFPY no encontrada'; invalidVenv='Venv no válido'; errorPrefix='ERROR'; unexpected='Error inesperado de RFPY.' }
+    zh=@{ title='RFPY - 选择 / 激活'; keys='上下键：选择 | Enter：确认 | Esc：退出'; none='尚未安装 RFPY 环境。'; first='正在打开 Web 控制台…'; project='项目'; shared='共享'; active='活动'; menu='RFPY - 管理'; activate='激活'; rename='重命名'; delete='删除'; settings='设置'; language='语言'; back='返回'; newname='新名称'; deactivateFirst='请先使用 rfpy off 停用。'; confirm='删除'; yes='是/N'; inactive='RFPY 未激活。'; deactivated='环境已停用。'; unknown='未知 RFPY 环境'; help='RFPY 命令'; current='RFPY 已激活'; venv='虚拟环境'; f2='F2：语言'; f3='F3：Web'; languageTitle='RFPY 语言'; activated='环境已激活'; runtimeMissing='找不到 RFPY 运行时'; appMissing='找不到 RFPY 应用程序'; invalidVenv='无效的 venv'; errorPrefix='错误'; unexpected='意外的 RFPY 错误。' }
 }
 function Msg([string]$Key) {
     $bucket = $words[$language]
@@ -92,12 +96,13 @@ function Describe-Environment([object]$Record) {
     return "{0}{1} | [{2}] | {3} | Python {4} | RF {5}" -f $Record.Name,$suffix,$kind,$profile,$python,$robot
 }
 
-function Pick-FromList([object[]]$Items,[string]$Heading,[scriptblock]$Formatter) {
+function Pick-FromList([object[]]$Items,[string]$Heading,[scriptblock]$Formatter,[switch]$EnableLanguageHotkey,[switch]$EnableWebHotkey) {
     if ($Items.Count -eq 0) { return $null }
     $cursor = 0
     for ($i=0; $i -lt $Items.Count; $i++) {
         $name = if ($Items[$i].PSObject.Properties['Name']) { [string]$Items[$i].Name } else { '' }
         if ($env:RFPY_ENV -and $name -ieq $env:RFPY_ENV) { $cursor=$i; break }
+        if ($Items[$i].PSObject.Properties['IsCurrent'] -and [bool]$Items[$i].IsCurrent) { $cursor=$i; break }
     }
     try {
         while ($true) {
@@ -108,14 +113,24 @@ function Pick-FromList([object[]]$Items,[string]$Heading,[scriptblock]$Formatter
             Write-Host ''
             for ($i=0; $i -lt $Items.Count; $i++) {
                 $line = & $Formatter $Items[$i]
-                if ($i -eq $cursor) { Write-Host ('> ' + $line) -ForegroundColor Cyan }
-                else { Write-Host ('  ' + $line) }
+                $name = if ($Items[$i].PSObject.Properties['Name']) { [string]$Items[$i].Name } else { '' }
+                $isActive = [bool]($env:RFPY_ENV -and $name -and $name -ieq $env:RFPY_ENV)
+                $isCurrent = [bool]($Items[$i].PSObject.Properties['IsCurrent'] -and [bool]$Items[$i].IsCurrent)
+                $prefix = if ($i -eq $cursor) { '> ' } else { '  ' }
+                if ($isActive -or $isCurrent) { Write-Host ($prefix + $line) -ForegroundColor Green }
+                elseif ($i -eq $cursor) { Write-Host ($prefix + $line) -ForegroundColor Cyan }
+                else { Write-Host ($prefix + $line) }
             }
             Write-Host ''
-            Write-Host (Msg 'keys') -ForegroundColor DarkGray
+            $keys=(Msg 'keys')
+            if ($EnableLanguageHotkey) { $keys += ' | ' + (Msg 'f2') }
+            if ($EnableWebHotkey) { $keys += ' | ' + (Msg 'f3') }
+            Write-Host $keys -ForegroundColor DarkGray
             $key = [Console]::ReadKey($true).Key
             if ($key -eq [ConsoleKey]::UpArrow) { $cursor=($cursor-1+$Items.Count)%$Items.Count; continue }
             if ($key -eq [ConsoleKey]::DownArrow) { $cursor=($cursor+1)%$Items.Count; continue }
+            if ($EnableLanguageHotkey -and $key -eq [ConsoleKey]::F2) { return [pscustomobject]@{RfpySpecial='language'} }
+            if ($EnableWebHotkey -and $key -eq [ConsoleKey]::F3) { return [pscustomobject]@{RfpySpecial='web'} }
             if ($key -eq [ConsoleKey]::Enter) { return $Items[$cursor] }
             if ($key -eq [ConsoleKey]::Escape) { return $null }
         }
@@ -128,9 +143,70 @@ function Pick-FromList([object[]]$Items,[string]$Heading,[scriptblock]$Formatter
     }
 }
 
+function Test-LanguageSpecial([object]$Value) {
+    return ($null -ne $Value -and $Value.PSObject.Properties['RfpySpecial'] -and [string]$Value.RfpySpecial -eq 'language')
+}
+
+function Test-WebSpecial([object]$Value) {
+    return ($null -ne $Value -and $Value.PSObject.Properties['RfpySpecial'] -and [string]$Value.RfpySpecial -eq 'web')
+}
+
+function Select-RfpyLanguage {
+    while ($true) {
+        $current=Get-RfpyLanguage
+        $items=@(
+            [pscustomobject]@{Name='Français';Code='fr';IsCurrent=($current -eq 'fr')},
+            [pscustomobject]@{Name='English';Code='en';IsCurrent=($current -eq 'en')},
+            [pscustomobject]@{Name='Deutsch';Code='de';IsCurrent=($current -eq 'de')},
+            [pscustomobject]@{Name='Español';Code='es';IsCurrent=($current -eq 'es')},
+            [pscustomobject]@{Name='中文';Code='zh';IsCurrent=($current -eq 'zh')}
+        )
+        $picked=Pick-FromList $items (Msg 'languageTitle') { param($x) if($x.IsCurrent){'✓ '+$x.Name}else{$x.Name} }
+        if ($null -eq $picked) { return }
+        Call-RfpyCore @('language',[string]$picked.Code)
+        $script:language = Get-RfpyLanguage
+        $env:RFPY_LANG = $script:language
+        return
+    }
+}
+
+function Write-CmdSelection([string]$OutputFile,[string]$Mode) {
+    if ([string]::IsNullOrWhiteSpace($OutputFile)) { return }
+    while ($true) {
+        $all=@(Find-ManagedEnvironments)
+        if ($all.Count -eq 0) { [IO.File]::WriteAllText($OutputFile,'__NO_ENVS__',[Text.UTF8Encoding]::new($false)); return }
+        $heading = if ($Mode -eq 'menu') { Msg 'menu' } else { Msg 'title' }
+        $selected=Pick-FromList $all $heading { param($x) Describe-Environment $x } -EnableLanguageHotkey -EnableWebHotkey
+        if (Test-LanguageSpecial $selected) { Select-RfpyLanguage; continue }
+        if (Test-WebSpecial $selected) { Call-RfpyCore @('web'); continue }
+        if ($null -eq $selected) { [IO.File]::WriteAllText($OutputFile,'',[Text.UTF8Encoding]::new($false)); return }
+        if ($Mode -ne 'menu') { [IO.File]::WriteAllText($OutputFile,$selected.Name,[Text.UTF8Encoding]::new($false)); return }
+        $actions=@(
+            [pscustomobject]@{Name=(Msg 'activate'); Code='activate'},
+            [pscustomobject]@{Name=(Msg 'rename'); Code='rename'},
+            [pscustomobject]@{Name=(Msg 'delete'); Code='delete'},
+            [pscustomobject]@{Name=(Msg 'back'); Code='back'}
+        )
+        $picked=Pick-FromList $actions ((Msg 'menu') + ' - ' + $selected.Name) { param($x) $x.Name } -EnableLanguageHotkey -EnableWebHotkey
+        if (Test-LanguageSpecial $picked) { Select-RfpyLanguage; continue }
+        if (Test-WebSpecial $picked) { Call-RfpyCore @('web'); continue }
+        if ($null -eq $picked -or $picked.Code -eq 'back') { continue }
+        if ($picked.Code -eq 'activate') { [IO.File]::WriteAllText($OutputFile,$selected.Name,[Text.UTF8Encoding]::new($false)); return }
+        if ($picked.Code -eq 'rename') {
+            $new=(Read-Host ((Msg 'newname') + " [$($selected.Name)]")).Trim()
+            if ($new -and $new -ne $selected.Name) { Call-RfpyCore @('rename',$selected.Name,$new) }
+            continue
+        }
+        if ($picked.Code -eq 'delete') {
+            $confirm=Read-Host ((Msg 'confirm') + " $($selected.Name) ? (" + (Msg 'yes') + ')')
+            if ($confirm -match '^(o|oui|y|yes|ja|j|si|sí|s|是)$') { Call-RfpyCore @('delete',$selected.Name) }
+        }
+    }
+}
+
 function Call-RfpyCore([string[]]$Arguments) {
-    if (-not (Test-Path -LiteralPath $RfpyPython)) { throw "Runtime RFPY introuvable : $RfpyPython" }
-    if (-not (Test-Path -LiteralPath $RfpyApp)) { throw "Application RFPY introuvable : $RfpyApp" }
+    if (-not (Test-Path -LiteralPath $RfpyPython)) { throw ((Msg 'runtimeMissing') + " : $RfpyPython") }
+    if (-not (Test-Path -LiteralPath $RfpyApp)) { throw ((Msg 'appMissing') + " : $RfpyApp") }
     $env:RFPY_HOME = $RfpyRoot
     & $RfpyPython $RfpyApp @Arguments
     $global:LASTEXITCODE = $LASTEXITCODE
@@ -151,7 +227,7 @@ function Enter-ManagedEnvironment([object]$Record) {
     $venv = Read-ManifestField $m @('venv') ''
     $scripts = Join-Path $venv 'Scripts'
     $python = Join-Path $scripts 'python.exe'
-    if (-not (Test-Path -LiteralPath $python)) { throw "Venv invalide : $venv" }
+    if (-not (Test-Path -LiteralPath $python)) { throw ((Msg 'invalidVenv') + " : $venv") }
     Save-ShellBaseline
     $base = $env:RFPY_ORIGINAL_PATH
     $env:Path = "$RfpyBin;$scripts;$base"
@@ -172,7 +248,7 @@ function Enter-ManagedEnvironment([object]$Record) {
     if ($null -ne $savedPrompt -and $null -ne $savedPrompt.Value) {
         function global:prompt { "[RFPY - $env:RFPY_ENV] " + (& $global:RFPY_PROMPT_BEFORE) }
     }
-    Write-Host ("[RFPY] {0} actif [{1}]." -f $Record.Name,$env:RFPY_ENV_TYPE) -ForegroundColor Green
+    Write-Host ("[RFPY] {0}: {1} [{2}]." -f (Msg 'activated'),$Record.Name,$env:RFPY_ENV_TYPE) -ForegroundColor Green
 }
 
 function Leave-ManagedEnvironment {
@@ -203,14 +279,21 @@ function Resolve-Environment([string]$Name) {
         return $hits[0]
     }
     if ($all.Count -eq 0) { return $null }
-    return Pick-FromList $all (Msg 'title') { param($x) Describe-Environment $x }
+    while ($true) {
+        $picked=Pick-FromList $all (Msg 'title') { param($x) Describe-Environment $x } -EnableLanguageHotkey -EnableWebHotkey
+        if (Test-LanguageSpecial $picked) { Select-RfpyLanguage; continue }
+        if (Test-WebSpecial $picked) { Call-RfpyCore @('web'); continue }
+        return $picked
+    }
 }
 
 function Show-ManagementMenu {
     while ($true) {
         $all=@(Find-ManagedEnvironments)
         if ($all.Count -eq 0) { Open-FirstRun; return }
-        $selected=Pick-FromList $all (Msg 'menu') { param($x) Describe-Environment $x }
+        $selected=Pick-FromList $all (Msg 'menu') { param($x) Describe-Environment $x } -EnableLanguageHotkey -EnableWebHotkey
+        if (Test-LanguageSpecial $selected) { Select-RfpyLanguage; continue }
+        if (Test-WebSpecial $selected) { Call-RfpyCore @('web'); continue }
         if ($null -eq $selected) { return }
         $actions=@(
             [pscustomobject]@{Name=(Msg 'activate'); Code='activate'},
@@ -218,7 +301,9 @@ function Show-ManagementMenu {
             [pscustomobject]@{Name=(Msg 'delete'); Code='delete'},
             [pscustomobject]@{Name=(Msg 'back'); Code='back'}
         )
-        $picked=Pick-FromList $actions ((Msg 'menu') + ' - ' + $selected.Name) { param($x) $x.Name }
+        $picked=Pick-FromList $actions ((Msg 'menu') + ' - ' + $selected.Name) { param($x) $x.Name } -EnableLanguageHotkey -EnableWebHotkey
+        if (Test-LanguageSpecial $picked) { Select-RfpyLanguage; continue }
+        if (Test-WebSpecial $picked) { Call-RfpyCore @('web'); continue }
         if ($null -eq $picked -or $picked.Code -eq 'back') { continue }
         if ($picked.Code -eq 'activate') { Enter-ManagedEnvironment $selected; return }
         if ($picked.Code -eq 'rename') {
@@ -227,7 +312,7 @@ function Show-ManagementMenu {
             continue
         }
         if ($picked.Code -eq 'delete') {
-            if ($env:RFPY_ENV -and $env:RFPY_ENV -ieq $selected.Name) { Write-Host ('[ERREUR] ' + (Msg 'deactivateFirst')) -ForegroundColor Red; continue }
+            if ($env:RFPY_ENV -and $env:RFPY_ENV -ieq $selected.Name) { Write-Host ('[' + (Msg 'errorPrefix') + '] ' + (Msg 'deactivateFirst')) -ForegroundColor Red; continue }
             $confirm=Read-Host ((Msg 'confirm') + " $($selected.Name) ? (" + (Msg 'yes') + ')')
             if ($confirm -match '^(o|oui|y|yes|ja|j|si|sí|s|是)$') { Call-RfpyCore @('delete',$selected.Name) }
         }
@@ -235,10 +320,42 @@ function Show-ManagementMenu {
 }
 
 try {
+    if ($HelpRequested) {
+        $forward = @()
+        if ($Action -ieq 'help') {
+            $forward += 'help'
+            if ($Target) { $forward += $Target }
+            if ($Tail) { $forward += @($Tail) }
+        } elseif ($ActionWasExplicit -and $Action -notin @('--help','-h','-help','/?','?')) {
+            $forward += $Action
+            if ($Target) { $forward += $Target }
+            if ($Tail) { $forward += @($Tail) }
+            $forward += '--help'
+        } else {
+            $forward += '--help'
+        }
+        Call-RfpyCore $forward
+        return
+    }
     switch ($Action.ToLowerInvariant()) {
         'on' {
-            $record=Resolve-Environment $Target
-            if ($null -eq $record) { Open-FirstRun } else { Enter-ManagedEnvironment $record }
+            if ($Target) {
+                $record = Resolve-Environment $Target
+                if ($null -ne $record) { Enter-ManagedEnvironment $record }
+            } else {
+                $all = @(Find-ManagedEnvironments)
+                if ($all.Count -eq 0) {
+                    Open-FirstRun
+                } else {
+                    while ($true) {
+                        $record = Pick-FromList $all (Msg 'title') { param($x) Describe-Environment $x } -EnableLanguageHotkey -EnableWebHotkey
+                        if (Test-LanguageSpecial $record) { Select-RfpyLanguage; continue }
+                        if (Test-WebSpecial $record) { Call-RfpyCore @('web'); continue }
+                        if ($null -ne $record) { Enter-ManagedEnvironment $record }
+                        break
+                    }
+                }
+            }
         }
         'off' { Leave-ManagedEnvironment }
         'menu' { Show-ManagementMenu }
@@ -247,14 +364,14 @@ try {
             if ($env:RFPY_ENV) { Write-Host ((Msg 'current') + " : $env:RFPY_ENV") -ForegroundColor Green; Write-Host ((Msg 'venv') + " : $env:VIRTUAL_ENV") }
             else { Write-Host (Msg 'inactive') -ForegroundColor Yellow }
         }
-        'help' {
-            Write-Host (Msg 'help') -ForegroundColor Cyan
-            Write-Host '  rfpy                         sélection / activation rapide'
-            Write-Host '  rfpy -m                      menu de gestion'
-            Write-Host '  rfpy on|activate [ENV]       activer'
-            Write-Host '  rfpy off|deactivate          désactiver'
-            Write-Host '  rfpy list|status|doctor|web  informations / console Web'
-            Write-Host '  rfpy install|project|...     commandes avancées'
+        'help' { Call-RfpyCore @('--help') }
+        'language' { Select-RfpyLanguage }
+        'lang' { Select-RfpyLanguage }
+        'cmd-pick' { Write-CmdSelection -OutputFile $Target -Mode 'quick' }
+        'cmd-menu' { Write-CmdSelection -OutputFile $Target -Mode 'menu' }
+        'cmd-activated' {
+            $kind = if ($Tail -and $Tail[0] -eq 'project') { Msg 'project' } else { Msg 'shared' }
+            Write-Host ("[RFPY] {0}: {1} [{2}]." -f (Msg 'activated'),$Target,$kind) -ForegroundColor Green
         }
         default {
             $forward=@($Action)
@@ -265,7 +382,7 @@ try {
     }
 } catch {
     $message=[string]$_.Exception.Message
-    if (-not $message) { $message='Erreur RFPY inattendue.' }
-    Write-Host ("[ERREUR] {0}" -f $message) -ForegroundColor Red
+    if (-not $message) { $message=(Msg 'unexpected') }
+    Write-Host (("[{0}] {1}" -f (Msg 'errorPrefix'),$message)) -ForegroundColor Red
     $global:LASTEXITCODE=1
 }

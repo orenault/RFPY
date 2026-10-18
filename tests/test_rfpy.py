@@ -36,7 +36,7 @@ class RfpyTests(unittest.TestCase):
     def test_default_config_is_created(self):
         cfg = self.rfpy.load_config()
         self.assertTrue(self.rfpy.CONFIG_FILE.exists())
-        self.assertTrue(cfg['artifact']['enabled'])
+        self.assertFalse(cfg['artifact']['enabled'])
         self.assertEqual(cfg['repositories'][0]['type'], 'pypi')
         self.assertEqual(cfg['defaults']['python'], '')
         self.assertEqual(cfg['defaults']['robot'], '')
@@ -151,7 +151,7 @@ class RfpyTests(unittest.TestCase):
     def test_backend_empty_install_opens_web_failsafe(self):
         root = Path(__file__).resolve().parents[1]
         app = (SRC_DIR / "rfpy.py").read_text(encoding="utf-8")
-        self.assertIn("Aucun environnement n existe encore. Ouverture de la console Web", app)
+        self.assertIn('cli_runtime_text("first_run")', app)
         self.assertIn("serve_web()", app)
 
     def test_shell_defaults_to_on_and_scans_stacks_directly(self):
@@ -212,7 +212,8 @@ class RfpyTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8')
         self.assertIn('function Pick-FromList', ps)
-        self.assertIn("$language = 'fr'", ps)
+        self.assertIn("$lang = 'fr'", ps)
+        self.assertIn('$script:language = Get-RfpyLanguage', ps)
         self.assertIn("$rawCfg.ui.PSObject.Properties['language']", ps)
         self.assertNotIn("Read-Host 'Action [1-4]'", ps)
         self.assertIn("'project-pending'", ps)
@@ -230,6 +231,8 @@ class RfpyTests(unittest.TestCase):
         self.assertIn('toggleLangMenu()', html)
         self.assertNotIn('select id="lang"', html)
         self.assertIn('pickInstallProject()', html)
+        self.assertIn('envTypeChanged()', html)
+        self.assertIn("function currentEnvType()", html)
         self.assertIn('profileMode', html)
         self.assertIn('deleteInstallProfile()', html)
         self.assertIn('testHeadless', html)
@@ -247,6 +250,7 @@ class RfpyTests(unittest.TestCase):
         # These files contain non-ASCII text and are parsed/executed on Windows.
         for path in (
             WRAPPERS_DIR / "rfpy.ps1",
+            WRAPPERS_DIR / "rfpyw.ps1",
             WRAPPERS_DIR / "uv.ps1",
             INSTALLER_FILE,
         ):
@@ -502,6 +506,164 @@ class RfpyTests(unittest.TestCase):
         self.assertIsNotNone(state)
         self.assertEqual(state['status'], 'cancelled')
 
+    def test_cli_help_is_localized_and_install_help_has_examples(self):
+        import contextlib
+        import io
+        previous = self.rfpy.current_language()
+        try:
+            self.rfpy.set_language('fr')
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.rfpy.print_cli_help(['install'])
+            fr = out.getvalue()
+            self.assertIn("OPTIONS D'INSTALLATION", fr)
+            self.assertIn('rfpy install RF-TOOLS', fr)
+            self.assertIn('IA / LLM + Ollama', fr)
+
+            self.rfpy.set_language('en')
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.rfpy.print_cli_help(['install'])
+            en = out.getvalue()
+            self.assertIn('INSTALL OPTIONS', en)
+            self.assertIn('INSTALL EXAMPLES', en)
+            self.assertIn('rfpyw', self.rfpy.CLI_I18N['en']['web'] + ' rfpyw')
+            for code in ('fr', 'en', 'de', 'es', 'zh'):
+                self.assertIn(code, self.rfpy.CLI_I18N)
+        finally:
+            self.rfpy.set_language(previous)
+
+    def test_powershell_escape_returns_to_prompt_instead_of_opening_web(self):
+        ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8-sig')
+        start = ps.index("        'on' {")
+        end = ps.index("        'off' {", start)
+        block = ps[start:end]
+        self.assertIn("if ($all.Count -eq 0)", block)
+        self.assertIn('Open-FirstRun', block)
+        self.assertIn('Pick-FromList', block)
+        self.assertIn('if ($null -ne $record) { Enter-ManagedEnvironment $record }', block)
+        self.assertNotIn('if ($null -eq $record) { Open-FirstRun', block)
+
+    def test_cmd_wrapper_uses_keyboard_selector_and_safe_activation_metadata(self):
+        cmd = (WRAPPERS_DIR / 'rfpy.cmd').read_text(encoding='utf-8-sig')
+        self.assertIn('cmd-pick', cmd)
+        self.assertIn('cmd-menu', cmd)
+        self.assertIn('env-shell-tsv', cmd)
+        self.assertIn('RFPY_META_TMP', cmd)
+        self.assertIn('delims=|', cmd)
+        self.assertNotIn('-c "import', cmd)
+        self.assertIn('powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%RFPY_PS%" language', cmd)
+        self.assertIn('cmd-activated', cmd)
+        self.assertIn('cmd-activated "%RFPY_ENV%" "%RFPY_ENV_TYPE%"', cmd)
+        ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8-sig')
+        self.assertIn("'cmd-activated'", ps)
+
+    def test_rfpyw_web_shortcut_is_packaged(self):
+        self.assertTrue((WRAPPERS_DIR / 'rfpyw.ps1').exists())
+        self.assertTrue((WRAPPERS_DIR / 'rfpyw.cmd').exists())
+        installer = INSTALLER_FILE.read_text(encoding='utf-8-sig')
+        self.assertIn('$WebPsBase64', installer)
+        self.assertIn('$WebCmdBase64', installer)
+        self.assertIn("Join-Path $BinDir 'rfpyw.ps1'", installer)
+        self.assertIn("Join-Path $BinDir 'rfpyw.cmd'", installer)
+
+    def test_installer_has_branding_and_language_selector_and_persists_language(self):
+        installer = INSTALLER_FILE.read_text(encoding='utf-8-sig')
+        self.assertIn("ValidateSet('fr','en','de','es','zh')", installer)
+        self.assertIn('Get-RfpyDialogIcon', installer)
+        self.assertIn('System.Windows.Forms.PictureBox', installer)
+        self.assertIn('function New-RfpyGlobeBitmap', installer)
+        self.assertIn('$langButton.Image = $globeBitmap', installer)
+        self.assertNotIn("$langButton.Text='🌐 '", installer)
+        self.assertIn('Copyright © 2026 Olivier RENAULT', installer)
+        self.assertIn('$cfg.ui.language = $InstallerLanguage', installer)
+        self.assertIn("Web direct", installer)
+
+    def test_private_repository_mode_is_opt_in_and_validated(self):
+        cfg = self.rfpy.load_config()
+        self.assertFalse(cfg['artifact']['enabled'])
+        html = self.rfpy.WEB_HTML
+        self.assertIn('privateRepoMissing', html)
+        self.assertIn('addRepository', html)
+        self.assertIn('repositoriesHint', html)
+        self.assertIn("type:'nexus'", html)
+        self.assertIn("privateEnabled&&!repos.some", html)
+
+    def test_legacy_private_repository_toggle_is_disabled_without_private_url(self):
+        original = self.rfpy.CONFIG_FILE.read_text(encoding='utf-8-sig')
+        try:
+            cfg = self.rfpy.load_config()
+            cfg['artifact']['enabled'] = True
+            cfg['repositories'] = [{
+                'name': 'PyPI', 'type': 'pypi', 'simple_url': 'https://pypi.org/simple',
+                'browse_url': '', 'enabled': True, 'install_all': False,
+                'strict': True, 'priority': 1000,
+            }]
+            self.rfpy.CONFIG_FILE.write_text(json.dumps(cfg, ensure_ascii=False), encoding='utf-8')
+            loaded = self.rfpy.load_config()
+            self.assertFalse(loaded['artifact']['enabled'])
+        finally:
+            self.rfpy.CONFIG_FILE.write_text(original, encoding='utf-8')
+
+
+    def test_web_localization_covers_dynamic_environment_and_catalog_text(self):
+        html = self.rfpy.WEB_HTML
+        for key in ('venvLabel','pipList','package','versionLabel','latestLabel','installedLabel','statusDefault','categoryPythonSupport'):
+            self.assertIn(f'"{key}"', html)
+        self.assertIn("${t('venvLabel')}", html)
+        self.assertIn("${t('latestLabel')}", html)
+        self.assertIn("categoryLabel(c)", html)
+        self.assertIn("j.error||t('errorLabel')", html)
+        self.assertIn('await refreshAll();return', html)
+
+    def test_web_environment_actions_survive_layout_changes(self):
+        html = self.rfpy.WEB_HTML
+        for endpoint in ('/api/export','/api/open-file','/api/project-path','/api/environment-type','/api/duplicate','/api/default','/api/rename','/api/delete'):
+            self.assertIn(endpoint, html)
+        for fn in ('exportEnv','chooseEnvProject','changeEnvType','duplicateEnv','setDefault','renameEnv','deleteEnv'):
+            self.assertIn('function ' + fn, html)
+
+    def test_auto_web_port_is_default_and_configurable(self):
+        self.assertEqual(self.rfpy.DEFAULT_CONFIG['web']['port'], 0)
+        cfg_file = (SRC_DIR / 'default-config.json').read_text(encoding='utf-8')
+        self.assertEqual(json.loads(cfg_file)['web']['port'], 0)
+        installer = INSTALLER_FILE.read_text(encoding='utf-8-sig')
+        self.assertIn("[Alias('wp')]", installer)
+        self.assertIn("--web-port", installer)
+        self.assertIn("webPortAuto", installer)
+        self.assertIn("$cfg.web.port = [int]$InstallerWebPort", installer)
+        html = self.rfpy.WEB_HTML
+        self.assertIn('id="webPortAuto"', html)
+        self.assertIn('webPortModeChanged()', html)
+
+    def test_web_startup_and_environment_note_follow_language(self):
+        self.assertEqual(self.rfpy._web_text('de','stop'), 'Mit Ctrl+C beenden.')
+        self.assertIn('automatischen Modus', self.rfpy._web_text('de','busy',port=8765))
+        source = (SRC_DIR / 'rfpy.py').read_text(encoding='utf-8')
+        self.assertIn('uv pip targets the active venv', source)
+        self.assertIn('uv pip verwendet das aktive venv', source)
+        self.assertIn('uv pip usa el venv activo', source)
+        self.assertIn('uv pip 使用当前活动 venv', source)
+
+    def test_powershell_language_is_global_keyboard_setting_and_active_is_green(self):
+        ps = (WRAPPERS_DIR / 'rfpy.ps1').read_text(encoding='utf-8-sig')
+        self.assertIn('[ConsoleKey]::F2', ps)
+        self.assertIn('Select-RfpyLanguage', ps)
+        self.assertIn("IsCurrent=($current -eq 'fr')", ps)
+        self.assertIn('-ForegroundColor Green', ps)
+        self.assertNotIn("Code='settings'", ps)
+        self.assertIn('cmd-pick', ps)
+        self.assertIn('cmd-menu', ps)
+
+    def test_private_repository_configuration_is_discoverable(self):
+        html = self.rfpy.WEB_HTML
+        self.assertIn('configureRepositories', html)
+        self.assertIn('openRepositorySettings()', html)
+        self.assertIn('id="repoCard"', html)
+        self.assertIn("name:'Nexus / Artifactory'", html)
+        self.assertIn("type:'nexus'", html)
+        self.assertIn("simple_url:''", html)
+
     def test_installer_embeds_notice_license_and_authors(self):
         root = Path(__file__).resolve().parents[1]
         installer = INSTALLER_FILE.read_text(encoding='utf-8')
@@ -510,6 +672,36 @@ class RfpyTests(unittest.TestCase):
         self.assertIn("Join-Path $InstallDir 'NOTICE'", installer)
         self.assertIn("Join-Path $InstallDir 'LICENSE'", installer)
         self.assertIn("Join-Path $InstallDir 'AUTHORS'", installer)
+
+
+    def test_installer_owned_console_messages_are_localized(self):
+        installer = INSTALLER_FILE.read_text(encoding="utf-8-sig")
+        self.assertIn("uvPresent='uv bereits vorhanden: {0}'", installer)
+        self.assertIn("pathRegistered='Der Befehl rfpy ist im Benutzer-PATH registriert.'", installer)
+        self.assertIn("(IW 'proxyInitialLabel')", installer)
+        self.assertIn("(IW 'doctorWarn')", installer)
+
+    def test_doctor_uses_configured_language(self):
+        original = self.rfpy.load_config
+        try:
+            self.rfpy.load_config = lambda: {
+                "ui": {"language": "de"},
+                "proxy": {"enabled": False},
+                "repositories": [],
+                "web": {"host": "127.0.0.1", "port": 8765},
+                "default_environment": "",
+            }
+            self.assertEqual(self.rfpy._doctor_language(), "de")
+            self.assertEqual(self.rfpy.DOCTOR_I18N["de"]["proxy_disabled"], "deaktiviert")
+            self.assertEqual(self.rfpy.DOCTOR_I18N["de"]["status"], "Status")
+        finally:
+            self.rfpy.load_config = original
+
+    def test_installer_forces_utf8_for_python_child_output(self):
+        installer = INSTALLER_FILE.read_text(encoding="utf-8-sig")
+        self.assertIn("$env:PYTHONIOENCODING = 'utf-8'", installer)
+        self.assertIn("[Console]::OutputEncoding = $script:Utf8Console", installer)
+        self.assertIn("chcp.com", installer)
 
 
 if __name__ == '__main__':

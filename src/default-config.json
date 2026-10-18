@@ -6,7 +6,7 @@
     "no_proxy": "localhost,127.0.0.1"
   },
   "artifact": {
-    "enabled": true,
+    "enabled": false,
     "allow_public_pypi": true,
     "ca_bundle": ""
   },
@@ -31,7 +31,7 @@
   },
   "web": {
     "host": "127.0.0.1",
-    "port": 8765,
+    "port": 0,
     "open_browser": true
   },
   "default_environment": "",

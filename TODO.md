@@ -43,3 +43,10 @@ This file tracks deliberately deferred work. It is not a commitment to a specifi
 ## Platform support
 
 - RFPY 1.0.0 targets Windows. Evaluate Linux / macOS support without weakening the Windows workflow.
+## Local component portal / discovery
+
+- Evaluate a lightweight localhost portal shared by RFPY, ZRBF and related components.
+- Define a small registration contract (component id/name/version, local URL/port, health/status) so tools using automatic ports can advertise themselves without collisions.
+- Prefer either a well-known user-level registry file with safe locking or a tiny local discovery service; keep each component usable independently when the portal is absent.
+- Do not make this a RFPY 1.0.0 dependency.
+
